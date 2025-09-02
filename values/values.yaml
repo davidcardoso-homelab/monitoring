@@ -1,0 +1,94 @@
+grafana:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 300Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  serviceAccount:
+    annotations:
+      app: grafana
+  ## Timezone for the default dashboards
+  ## Other options are: browser or a specific timezone, i.e. Europe/Luxembourg
+  ##
+  defaultDashboardsTimezone: America/Sao_Paulo
+  adminPassword: minhasenhasegura
+
+  # # To make Grafana persistent (Using Statefulset)
+  # #
+  persistence:
+    enabled: true
+    type: pvc
+    storageClassName: "local-path"
+    accessModes:
+      - ReadWriteOnce
+    size: 5Gi
+    selectorLabels:
+      app.kubernetes.io/name: grafana
+
+  serviceAccount:
+    annotations:
+      app: grafana
+  grafana.ini:
+    log:
+      level: debug
+    server:
+      root_url: http://grafana.homelab
+    smtp:
+      enabled: false
+  
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - grafana.homelab
+
+  ## Passed to grafana subchart and used by servicemonitor below
+  ##
+
+# Configurações específicas para resolver problemas com hooks e finalizers
+prometheusOperator:
+
+  admissionWebhooks:
+    annotations:
+      argocd.argoproj.io/hook: PreSync
+      argocd.argoproj.io/hook-delete-policy: HookSucceeded
+
+    patch:
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+        argocd.argoproj.io/hook-delete-policy: HookSucceeded
+
+    mutatingWebhookConfiguration:
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+
+    validatingWebhookConfiguration:
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+
+prometheus:
+  prometheusSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 600Mi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+    retention: "7d"
+
+alertmanager:
+  enabled: false
